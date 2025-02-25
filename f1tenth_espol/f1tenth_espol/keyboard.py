@@ -1,6 +1,6 @@
 import rclpy
 from rclpy.node import Node
-from geometry_msgs.msg import Twist
+from ackermann_msgs.msg import AckermannDriveStamped
 import sys
 import termios
 import tty
@@ -9,12 +9,12 @@ import tty
 class KeyboardTeleopNode(Node):
     def __init__(self):
         super().__init__('keyboard_teleop_node')
-        self.publisher_ = self.create_publisher(Twist, '/cmd_keyboard', 10)
-        self.linear_velocity = 0.0
-        self.angular_velocity = 0.0
-        self.linear_increment = 0.1
-        self.angular_increment = 0.05
-        self.get_logger().info("Node initialized. Use W/A/S/D to control the robot.")
+        self.publisher_ = self.create_publisher(AckermannDriveStamped, '/keyboard', 10)
+        self.speed = 0.0
+        self.steering_angle = 0.0
+        self.speed_increment = 0.1
+        self.steering_increment = 0.05
+        self.get_logger().info("Nodo inicializado. Usa W/A/S/D para controlar el robot.")
 
     def get_key(self):
         tty.setraw(sys.stdin.fileno())
@@ -28,30 +28,33 @@ class KeyboardTeleopNode(Node):
                 key = self.get_key()
 
                 if key == 'w':
-                    self.linear_velocity += self.linear_increment
+                    self.speed += self.speed_increment
                 elif key == 's':
-                    self.linear_velocity -= self.linear_increment
+                    self.speed -= self.speed_increment
                 elif key == 'a':
-                    self.angular_velocity += self.angular_increment
+                    self.steering_angle += self.steering_increment
                 elif key == 'd':
-                    self.angular_velocity -= self.angular_increment
+                    self.steering_angle -= self.steering_increment
                 elif key == '\x03':  # Ctrl+C
                     break
 
-                twist = Twist()
-                twist.linear.x = self.linear_velocity
-                twist.angular.z = self.angular_velocity
-                self.publisher_.publish(twist)
+                drive_msg = AckermannDriveStamped()
+                drive_msg.drive.speed = self.speed
+                drive_msg.drive.steering_angle = self.steering_angle
+                self.publisher_.publish(drive_msg)
 
-                self.get_logger().info(f"Linear Velocity: {self.linear_velocity:.2f} m/s, Angular Velocity: {self.angular_velocity:.2f} rad/s")
+                self.get_logger().info(f"Velocidad: {self.speed:.2f} m/s, Ángulo de dirección: {self.steering_angle:.2f} rad")
 
         except Exception as e:
             self.get_logger().error(f"Error: {e}")
 
         finally:
-            twist = Twist()
-            self.publisher_.publish(twist)
-            self.get_logger().info("Node shutting down. Stopping the robot.")
+            # Detener el robot antes de cerrar
+            drive_msg = AckermannDriveStamped()
+            drive_msg.drive.speed = 0.0
+            drive_msg.drive.steering_angle = 0.0
+            self.publisher_.publish(drive_msg)
+            self.get_logger().info("Nodo finalizado. Robot detenido.")
 
 # Configuración inicial del terminal para leer teclas
 settings = termios.tcgetattr(sys.stdin)
