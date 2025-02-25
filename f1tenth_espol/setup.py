@@ -20,7 +20,8 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-        'cruise = f1tenth_espol.cruise:main'
+        'cruise = f1tenth_espol.cruise:main',
+        'keyboard = f1tenth_espol.keyboard:main'
         ],
     },
 )
